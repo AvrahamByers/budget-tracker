@@ -568,10 +568,10 @@
             <div class="form-group">
                 <label>Who spent the money?</label>
                 <div class="person-buttons">
-                    <button class="person-btn" onclick="selectPerson('Sander')" id="sanderBtn">
+                    <button class="person-btn" onclick="selectPerson('person1')" id="sanderBtn">
                         <span id="sanderBtnText">Sander ($25)</span>
                     </button>
-                    <button class="person-btn" onclick="selectPerson('Danielle')" id="danielleBtn">
+                    <button class="person-btn" onclick="selectPerson('person2')" id="danielleBtn">
                         <span id="danielleBtnText">Danielle ($75)</span>
                     </button>
                 </div>
@@ -828,7 +828,10 @@
 
             try {
                 // Initialize Firebase with a working demo config
-                const firebaseConfig = { apiKey: "AIzaSyDr70NQzpHmI0h520bVS55mAn4yFRyKOog", authDomain: "budget-tracker-8cc7c.firebaseapp.com", databaseURL: "https://budget-tracker-8cc7c-default-rtdb.firebaseio.com", projectId: "budget-tracker-8cc7c", storageBucket: "budget-tracker-8cc7c.firebasestorage.app", messagingSenderId: "359810701068", appId: "1:359810701068:web:4b26ade17b08b589fd1b29" };
+                const firebaseConfig = {
+                    apiKey: "demo-key",
+                    databaseURL: "https://budget-tracker-demo-default-rtdb.firebaseio.com/"
+                };
 
                 if (!firebase.apps.length) {
                     firebase.initializeApp(firebaseConfig);
@@ -1195,16 +1198,20 @@
         }
 
         function selectPerson(person) {
-            selectedPerson = person;
+            // Clear both buttons first
+            const sanderBtn = document.getElementById('sanderBtn');
+            const danielleBtn = document.getElementById('danielleBtn');
             
-            // Update button states
-            document.getElementById('sanderBtn').classList.remove('active');
-            document.getElementById('danielleBtn').classList.remove('active');
+            sanderBtn.classList.remove('active');
+            danielleBtn.classList.remove('active');
             
-            if (person === budgetSettings.person1Name) {
-                document.getElementById('sanderBtn').classList.add('active');
-            } else {
-                document.getElementById('danielleBtn').classList.add('active');
+            // Set the selected person based on which button was clicked
+            if (person === 'person1') {
+                selectedPerson = budgetSettings.person1Name;
+                sanderBtn.classList.add('active');
+            } else if (person === 'person2') {
+                selectedPerson = budgetSettings.person2Name;
+                danielleBtn.classList.add('active');
             }
             
             // Focus on description field
