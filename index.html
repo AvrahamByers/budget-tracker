@@ -547,14 +547,14 @@
 
         <div class="budget-cards">
             <div class="budget-card">
-                <h3 id="sanderLabel">Sander ($25/day)</h3>
-                <div class="budget-remaining sander" id="sanderRemaining">$25.00 remaining</div>
+                <h3 id="sanderLabel">Person 1 ($50/day)</h3>
+                <div class="budget-remaining sander" id="sanderRemaining">$50.00 remaining</div>
                 <div class="budget-spent" id="sanderSpent">$0.00 spent</div>
             </div>
             
             <div class="budget-card">
-                <h3 id="danielleLabel">Danielle ($75/day)</h3>
-                <div class="budget-remaining danielle" id="danielleRemaining">$75.00 remaining</div>
+                <h3 id="danielleLabel">Person 2 ($50/day)</h3>
+                <div class="budget-remaining danielle" id="danielleRemaining">$50.00 remaining</div>
                 <div class="budget-spent" id="danielleSpent">$0.00 spent</div>
             </div>
         </div>
@@ -574,10 +574,10 @@
                 <label>Who spent the money?</label>
                 <div class="person-buttons">
                     <button class="person-btn" onclick="selectPerson('person1')" id="sanderBtn">
-                        <span id="sanderBtnText">Sander ($25)</span>
+                        <span id="sanderBtnText">Person 1 ($50)</span>
                     </button>
                     <button class="person-btn" onclick="selectPerson('person2')" id="danielleBtn">
-                        <span id="danielleBtnText">Danielle ($75)</span>
+                        <span id="danielleBtnText">Person 2 ($50)</span>
                     </button>
                 </div>
             </div>
@@ -655,9 +655,9 @@
                     <label>Quick Presets</label>
                     <div class="budget-preset">
                         <button class="preset-btn" onclick="setBudgetPreset(50, 25, 25)">$50 (25/25)</button>
-                        <button class="preset-btn" onclick="setBudgetPreset(100, 25, 75)">$100 (25/75)</button>
-                        <button class="preset-btn" onclick="setBudgetPreset(150, 50, 100)">$150 (50/100)</button>
-                        <button class="preset-btn" onclick="setBudgetPreset(200, 75, 125)">$200 (75/125)</button>
+                        <button class="preset-btn" onclick="setBudgetPreset(100, 50, 50)">$100 (50/50)</button>
+                        <button class="preset-btn" onclick="setBudgetPreset(150, 75, 75)">$150 (75/75)</button>
+                        <button class="preset-btn" onclick="setBudgetPreset(200, 100, 100)">$200 (100/100)</button>
                     </div>
                 </div>
                 
@@ -677,12 +677,12 @@
                 
                 <div class="form-group">
                     <label for="person1Name">Person 1 Name</label>
-                    <input type="text" id="person1Name" placeholder="Sander" maxlength="15">
+                    <input type="text" id="person1Name" placeholder="Person 1" maxlength="15">
                 </div>
                 
                 <div class="form-group">
                     <label for="person2Name">Person 2 Name</label>
-                    <input type="text" id="person2Name" placeholder="Danielle" maxlength="15">
+                    <input type="text" id="person2Name" placeholder="Person 2" maxlength="15">
                 </div>
                 
                 <div class="form-group">
@@ -727,10 +727,10 @@
         // Budget settings with defaults
         let budgetSettings = {
             totalBudget: 100,
-            person1Name: 'Sander',
-            person1Budget: 25,
-            person2Name: 'Danielle',
-            person2Budget: 75,
+            person1Name: 'Person 1',
+            person1Budget: 50,
+            person2Name: 'Person 2',
+            person2Budget: 50,
             timezone: 'America/New_York'
         };
 
@@ -980,6 +980,7 @@
                     if (data) {
                         if (data.settings) {
                             budgetSettings = { ...budgetSettings, ...data.settings };
+                            console.log('Loaded settings from Firebase:', budgetSettings);
                         }
                         if (data.expenses) {
                             expenses = Object.values(data.expenses).map(exp => ({
@@ -997,6 +998,26 @@
             } else {
                 loadLocalData();
             }
+        }
+
+        function loadLocalData() {
+            const saved = localStorage.getItem('budgetSettings');
+            if (saved) {
+                const savedSettings = JSON.parse(saved);
+                budgetSettings = { ...budgetSettings, ...savedSettings };
+                console.log('Loaded settings from localStorage:', budgetSettings);
+            }
+            
+            const savedExpenses = localStorage.getItem('budgetExpenses');
+            if (savedExpenses) {
+                expenses = JSON.parse(savedExpenses).map(exp => ({
+                    ...exp,
+                    timestamp: new Date(exp.timestamp)
+                }));
+            }
+            
+            updateUIWithSettings();
+            checkForMidnightReset();
         }
 
         function updateSyncStatus(connected) {
