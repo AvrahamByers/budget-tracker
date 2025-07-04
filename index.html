@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget Tracker</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#667eea">
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiQnVkZ2V0IFRyYWNrZXIiLCJzaG9ydF9uYW1lIjoiQnVkZ2V0IiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJ0aGVtZV9jb2xvciI6IiM2NjdlZWEifQ==">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .app-container {
+            max-width: 420px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .sync-status {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .sync-status.connected {
+            color: #4CAF50;
+        }
+
+        .sync-status.disconnected {
+            color: #f44336;
+        }
+
+        .budget-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .budget-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .budget-card:active {
+            transform: scale(0.98);
+        }
+
+        .budget-card h3 {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .budget-remaining {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .budget-spent {
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .sander { color: #2196F3; }
+        .danielle { color: #E91E63; }
+        .total { color: #4CAF50; }
+        .over-budget { color: #f44336; }
+
+        .quick-add {
+            padding: 20px;
+            background: white;
+        }
+
+        .quick-add h2 {
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .person-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .person-btn {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .person-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .add-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .add-btn:active {
+            transform: scale(0.98);
+        }
+
+        .add-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .recent-expenses {
+            padding: 20px;
+            padding-bottom: 80px;
+            background: white;
+        }
+
+        .expenses-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .date-nav-btn {
+            background: none;
+            border: 2px solid #e0e0e0;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .date-nav-btn:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .date-nav-btn.prev {
+            left: 0;
+        }
+
+        .date-nav-btn.next {
+            right: 0;
+        }
+
+        .expenses-title {
+            font-size: 1.2em;
+            color: #333;
+            margin: 0;
+        }
+
+        .expense-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .expense-item:last-child {
+            border-bottom: none;
+        }
+
+        .expense-info {
+            flex: 1;
+        }
+
+        .expense-description, .expense-amount {
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .expense-description:hover, .expense-amount:hover {
+            background-color: #f0f0f0;
+        }
+
+        .expense-description.editing, .expense-amount.editing {
+            background-color: #e8f4fd;
+            border: 2px solid #667eea;
+        }
+
+        .expense-description input, .expense-amount input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-size: inherit;
+            font-weight: inherit;
+            color: inherit;
+            padding: 2px;
+        }
+
+        .expense-description input:focus, .expense-amount input:focus {
+            outline: none;
+        }
+
+        .expense-person {
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .expense-amount {
+            font-weight: bold;
+            font-size: 1.1em;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-left: 4px;
+            transition: background-color 0.2s;
+            color: #dc3545;
+        }
+
+        .delete-btn:hover {
+            background-color: #f0f0f0;
+        }
+
+        .deposit-item {
+            background-color: #e8f5e8;
+            border-left: 4px solid #28a745;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            text-align: center;
+            display: none;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            text-align: center;
+            display: none;
+        }
+
+        .floating-total {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .settings-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .settings-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .settings-content {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            max-width: 350px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .settings-header h2 {
+            margin: 0;
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .budget-preset {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .preset-btn {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .preset-btn:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .custom-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .save-settings-btn {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .setup-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .setup-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .setup-input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .setup-btn {
+            width: 100%;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 480px) {
+            .app-container {
+                max-width: 100%;
+            }
+            
+            .budget-cards {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                padding: 15px;
+            }
+            
+            .header {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <div class="sync-status" id="syncStatus">📶</div>
+            <button class="settings-btn" onclick="openSettings()">⚙️</button>
+            <h1>💰 Budget Tracker</h1>
+            <p id="budgetDisplay">Daily Budget: $100 total</p>
+        </div>
+
+        <div class="budget-cards">
+            <div class="budget-card">
+                <h3 id="sanderLabel">Sander ($25/day)</h3>
+                <div class="budget-remaining sander" id="sanderRemaining">$25.00 remaining</div>
+                <div class="budget-spent" id="sanderSpent">$0.00 spent</div>
+            </div>
+            
+            <div class="budget-card">
+                <h3 id="danielleLabel">Danielle ($75/day)</h3>
+                <div class="budget-remaining danielle" id="danielleRemaining">$75.00 remaining</div>
+                <div class="budget-spent" id="danielleSpent">$0.00 spent</div>
+            </div>
+        </div>
+
+        <div class="quick-add">
+            <h2>➕ Add Expense</h2>
+            
+            <div class="success-message" id="successMessage">
+                Expense added successfully! 🎉
+            </div>
+            
+            <div class="error-message" id="errorMessage">
+                Please fill in all fields
+            </div>
+
+            <div class="form-group">
+                <label>Who spent the money?</label>
+                <div class="person-buttons">
+                    <button class="person-btn" onclick="selectPerson('Sander')" id="sanderBtn">
+                        <span id="sanderBtnText">Sander ($25)</span>
+                    </button>
+                    <button class="person-btn" onclick="selectPerson('Danielle')" id="danielleBtn">
+                        <span id="danielleBtnText">Danielle ($75)</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="description">What was purchased?</label>
+                <input type="text" id="description" placeholder="e.g., Coffee, Lunch, Gas">
+            </div>
+
+            <div class="form-group">
+                <label for="amount">Amount (use negative for returns)</label>
+                <input type="number" id="amount" placeholder="0.00" step="0.01">
+            </div>
+
+            <button class="add-btn" onclick="addExpense()">
+                Add Expense
+            </button>
+        </div>
+
+        <div class="recent-expenses">
+            <div class="expenses-header">
+                <button class="date-nav-btn prev" onclick="changeDate(-1)">‹</button>
+                <h2 class="expenses-title" id="expensesTitle">📋 Today's Expenses</h2>
+                <button class="date-nav-btn next" onclick="changeDate(1)">›</button>
+            </div>
+            <div id="expensesList">
+                <!-- Expenses will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <div class="floating-total" id="floatingTotal">
+            Today: $0.00 / $100.00
+        </div>
+
+        <!-- Setup Modal -->
+        <div class="setup-modal" id="setupModal">
+            <div class="setup-content">
+                <h2>🚀 Setup Sync</h2>
+                <p>Create or join a shared budget</p>
+                
+                <input type="text" id="budgetId" class="setup-input" placeholder="Enter Budget ID (optional)">
+                <p style="font-size: 14px; color: #666; margin: 10px 0;">Leave blank to create new budget</p>
+                
+                <button class="setup-btn" onclick="setupSync()">Start Syncing</button>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 14px;">
+                    💡 <strong>How it works:</strong><br>
+                    • Share the Budget ID with your partner<br>
+                    • Changes sync instantly between phones<br>
+                    • Works offline, syncs when connected
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div class="settings-modal" id="settingsModal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h2>⚙️ Budget Settings</h2>
+                    <button class="close-btn" onclick="closeSettings()">&times;</button>
+                </div>
+                
+                <div class="form-group">
+                    <label>Current Budget ID</label>
+                    <input type="text" id="currentBudgetId" readonly style="background: #f8f9fa;">
+                    <button onclick="copyBudgetId()" style="margin-top: 5px; padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Copy ID</button>
+                </div>
+                
+                <div class="form-group">
+                    <label for="totalBudget">Total Daily Budget</label>
+                    <input type="number" id="totalBudget" placeholder="100" step="1" min="1">
+                </div>
+                
+                <div class="form-group">
+                    <label>Quick Presets</label>
+                    <div class="budget-preset">
+                        <button class="preset-btn" onclick="setBudgetPreset(50, 25, 25)">$50 (25/25)</button>
+                        <button class="preset-btn" onclick="setBudgetPreset(100, 25, 75)">$100 (25/75)</button>
+                        <button class="preset-btn" onclick="setBudgetPreset(150, 50, 100)">$150 (50/100)</button>
+                        <button class="preset-btn" onclick="setBudgetPreset(200, 75, 125)">$200 (75/125)</button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Custom Split</label>
+                    <div class="custom-split">
+                        <div>
+                            <label for="sanderBudget">Person 1 Budget</label>
+                            <input type="number" id="sanderBudget" placeholder="25" step="1" min="0">
+                        </div>
+                        <div>
+                            <label for="danielleBudget">Person 2 Budget</label>
+                            <input type="number" id="danielleBudget" placeholder="75" step="1" min="0">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="person1Name">Person 1 Name</label>
+                    <input type="text" id="person1Name" placeholder="Sander" maxlength="15">
+                </div>
+                
+                <div class="form-group">
+                    <label for="person2Name">Person 2 Name</label>
+                    <input type="text" id="person2Name" placeholder="Danielle" maxlength="15">
+                </div>
+                
+                <div class="form-group">
+                    <label for="timezone">Timezone</label>
+                    <select id="timezone">
+                        <option value="America/New_York">Eastern Time (ET)</option>
+                        <option value="America/Chicago">Central Time (CT)</option>
+                        <option value="America/Denver">Mountain Time (MT)</option>
+                        <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                        <option value="America/Anchorage">Alaska Time (AT)</option>
+                        <option value="Pacific/Honolulu">Hawaii Time (HT)</option>
+                        <option value="Europe/London">London (GMT)</option>
+                        <option value="Europe/Paris">Paris (CET)</option>
+                        <option value="Asia/Tokyo">Tokyo (JST)</option>
+                        <option value="Australia/Sydney">Sydney (AEDT)</option>
+                    </select>
+                </div>
+                
+                <button class="save-settings-btn" onclick="saveSettings()">Save Settings</button>
+                
+                <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 14px; color: #666;">
+                    💡 Settings sync automatically between devices
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <script>
+        let selectedPerson = '';
+        let expenses = [];
+        let currentViewDate = new Date();
+        let isOnline = navigator.onLine;
+        let budgetId = '';
+        let database = null;
+        let isFirstLoad = true;
+        let firebaseLoaded = false;
+
+        // Budget settings with defaults
+        let budgetSettings = {
+            totalBudget: 100,
+            person1Name: 'Sander',
+            person1Budget: 25,
+            person2Name: 'Danielle',
+            person2Budget: 75,
+            timezone: 'America/New_York'
+        };
+
+        // Check if Firebase loaded successfully
+        function checkFirebaseLoaded() {
+            return new Promise((resolve) => {
+                // Check multiple times in case of slow loading
+                let attempts = 0;
+                const maxAttempts = 10;
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof firebase !== 'undefined' && firebase.database) {
+                        firebaseLoaded = true;
+                        clearInterval(checkInterval);
+                        resolve(true);
+                    } else if (attempts >= maxAttempts) {
+                        firebaseLoaded = false;
+                        clearInterval(checkInterval);
+                        resolve(false);
+                    }
+                }, 500);
+            });
+        }
+
+        // Initialize app and show setup if needed
+        async function initializeApp() {
+            // Wait for Firebase to load
+            const firebaseReady = await checkFirebaseLoaded();
+            
+            if (!firebaseReady) {
+                console.warn('Firebase failed to load, using local storage only');
+                updateSyncStatus(false);
+                showError('Sync unavailable - using offline mode only');
+                
+                // Skip setup modal and go straight to local mode
+                budgetId = 'local_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('budgetId', budgetId);
+                loadLocalData();
+                return;
+            }
+
+            // Check if user has a budget ID
+            budgetId = localStorage.getItem('budgetId');
+            
+            if (!budgetId) {
+                document.getElementById('setupModal').style.display = 'flex';
+            } else {
+                initializeFirebase();
+                loadSettings();
+            }
+        }
+
+        function setupSync() {
+            const inputId = document.getElementById('budgetId').value.trim();
+            
+            if (!firebaseLoaded) {
+                showError('Sync not available - using offline mode');
+                budgetId = 'local_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('budgetId', budgetId);
+                document.getElementById('setupModal').style.display = 'none';
+                loadLocalData();
+                return;
+            }
+            
+            if (inputId) {
+                // Join existing budget
+                budgetId = inputId;
+            } else {
+                // Create new budget
+                budgetId = 'budget_' + Math.random().toString(36).substr(2, 9);
+            }
+            
+            localStorage.setItem('budgetId', budgetId);
+            document.getElementById('setupModal').style.display = 'none';
+            
+            initializeFirebase();
+            loadSettings();
+            
+            showSuccess(`${inputId ? 'Joined' : 'Created'} budget: ${budgetId}`);
+        }
+
+        // Simple fallback sync using localStorage for demo purposes
+        function simpleFallbackSync() {
+            if (!firebaseLoaded) {
+                // For demo purposes, we'll just use localStorage
+                // In a real app, you'd use a different backend service
+                saveToLocalStorage();
+                updateSyncStatus(false);
+                return;
+            }
+        }
+
+        function initializeFirebase() {
+            if (!firebaseLoaded) {
+                console.warn('Firebase not available, using local storage');
+                loadLocalData();
+                return;
+            }
+
+            try {
+                // Initialize Firebase with a working demo config
+                const firebaseConfig = { apiKey: "AIzaSyDr70NQzpHmI0h520bVS55mAn4yFRyKOog", authDomain: "budget-tracker-8cc7c.firebaseapp.com", databaseURL: "https://budget-tracker-8cc7c-default-rtdb.firebaseio.com", projectId: "budget-tracker-8cc7c", storageBucket: "budget-tracker-8cc7c.firebasestorage.app", messagingSenderId: "359810701068", appId: "1:359810701068:web:4b26ade17b08b589fd1b29" };
+
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                database = firebase.database();
+                setupRealtimeListeners();
+                updateSyncStatus(true);
+            } catch (error) {
+                console.error('Firebase initialization failed:', error);
+                updateSyncStatus(false);
+                firebaseLoaded = false;
+                // Fall back to local storage
+                loadLocalData();
+            }
+        }
+
+        function setupRealtimeListeners() {
+            if (!database || !budgetId || !firebaseLoaded) return;
+
+            try {
+                // Listen for expense changes
+                database.ref(`budgets/${budgetId}/expenses`).on('value', (snapshot) => {
+                    if (!isFirstLoad) {
+                        const data = snapshot.val();
+                        if (data) {
+                            expenses = Object.values(data).map(exp => ({
+                                ...exp,
+                                timestamp: new Date(exp.timestamp)
+                            }));
+                            updateBudgetDisplay();
+                            updateExpensesList();
+                        }
+                    }
+                    isFirstLoad = false;
+                });
+
+                // Listen for settings changes
+                database.ref(`budgets/${budgetId}/settings`).on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        budgetSettings = { ...budgetSettings, ...data };
+                        updateUIWithSettings();
+                    }
+                });
+            } catch (error) {
+                console.error('Firebase listeners failed:', error);
+                updateSyncStatus(false);
+                firebaseLoaded = false;
+            }
+        }
+
+        function syncToFirebase() {
+            // Always save locally first
+            saveToLocalStorage();
+            
+            if (!database || !budgetId || !isOnline || !firebaseLoaded) {
+                return;
+            }
+
+            try {
+                // Convert expenses to plain objects for Firebase
+                const expensesData = {};
+                expenses.forEach((expense, index) => {
+                    expensesData[`exp_${Date.now()}_${index}`] = {
+                        ...expense,
+                        timestamp: expense.timestamp.toISOString()
+                    };
+                });
+
+                database.ref(`budgets/${budgetId}`).update({
+                    expenses: expensesData,
+                    settings: budgetSettings,
+                    lastUpdated: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                updateSyncStatus(true);
+            } catch (error) {
+                console.error('Sync failed:', error);
+                updateSyncStatus(false);
+                firebaseLoaded = false;
+            }
+        }
+
+        function loadLocalData() {
+            const saved = localStorage.getItem('budgetSettings');
+            if (saved) {
+                budgetSettings = { ...budgetSettings, ...JSON.parse(saved) };
+            }
+            
+            const savedExpenses = localStorage.getItem('budgetExpenses');
+            if (savedExpenses) {
+                expenses = JSON.parse(savedExpenses).map(exp => ({
+                    ...exp,
+                    timestamp: new Date(exp.timestamp)
+                }));
+            }
+            
+            updateUIWithSettings();
+            checkForMidnightReset();
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('budgetSettings', JSON.stringify(budgetSettings));
+            localStorage.setItem('budgetExpenses', JSON.stringify(expenses));
+        }
+
+        function updateSyncStatus(connected) {
+            const statusEl = document.getElementById('syncStatus');
+            if (connected) {
+                statusEl.textContent = '📶';
+                statusEl.className = 'sync-status connected';
+                statusEl.title = 'Connected - Syncing';
+            } else {
+                statusEl.textContent = '📱';
+                statusEl.className = 'sync-status disconnected';
+                statusEl.title = 'Offline - Local only';
+            }
+        }
+
+        function copyBudgetId() {
+            navigator.clipboard.writeText(budgetId).then(() => {
+                showSuccess('Budget ID copied! 📋');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = budgetId;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showSuccess('Budget ID copied! 📋');
+            });
+        }
+
+        // Load settings from localStorage on startup
+        function loadSettings() {
+            if (database && budgetId && firebaseLoaded) {
+                // Load from Firebase
+                database.ref(`budgets/${budgetId}`).once('value').then((snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        if (data.settings) {
+                            budgetSettings = { ...budgetSettings, ...data.settings };
+                        }
+                        if (data.expenses) {
+                            expenses = Object.values(data.expenses).map(exp => ({
+                                ...exp,
+                                timestamp: new Date(exp.timestamp)
+                            }));
+                        }
+                    }
+                    updateUIWithSettings();
+                    checkForMidnightReset();
+                }).catch((error) => {
+                    console.error('Failed to load from Firebase:', error);
+                    loadLocalData();
+                });
+            } else {
+                loadLocalData();
+            }
+        }
+
+        function updateSyncStatus(connected) {
+            const statusEl = document.getElementById('syncStatus');
+            if (connected && firebaseLoaded) {
+                statusEl.textContent = '📶';
+                statusEl.className = 'sync-status connected';
+                statusEl.title = 'Connected - Syncing';
+            } else {
+                statusEl.textContent = '📱';
+                statusEl.className = 'sync-status disconnected';
+                statusEl.title = 'Offline - Local only';
+            }
+        }
+
+        // Update success messages to show sync status
+        function addExpense() {
+            const description = document.getElementById('description').value.trim();
+            const amount = parseFloat(document.getElementById('amount').value);
+            
+            // Validation - allow negative amounts
+            if (!selectedPerson || !description || isNaN(amount) || amount === 0) {
+                showError('Please fill in all fields correctly');
+                return;
+            }
+            
+            // Add expense
+            const expense = {
+                person: selectedPerson,
+                description: description,
+                amount: amount,
+                timestamp: new Date(),
+                type: amount < 0 ? 'return' : 'expense'
+            };
+            
+            expenses.push(expense);
+            syncToFirebase();
+            
+            // Clear form
+            document.getElementById('description').value = '';
+            document.getElementById('amount').value = '';
+            selectedPerson = '';
+            document.getElementById('sanderBtn').classList.remove('active');
+            document.getElementById('danielleBtn').classList.remove('active');
+            
+            // Update display
+            updateBudgetDisplay();
+            updateExpensesList();
+            
+            const syncMsg = firebaseLoaded ? 'added and synced!' : 'added (offline mode)!';
+            showSuccess(`${amount < 0 ? 'Return' : 'Expense'} ${syncMsg} 🎉`);
+        }
+
+        function saveDescription(index, newValue) {
+            const trimmedValue = newValue.trim();
+            if (trimmedValue && trimmedValue !== expenses[index].description) {
+                expenses[index].description = trimmedValue;
+                syncToFirebase();
+                const syncMsg = firebaseLoaded ? 'updated and synced!' : 'updated (offline mode)!';
+                showSuccess(`Description ${syncMsg} ✏️`);
+            }
+            updateExpensesList();
+        }
+
+        function saveAmount(index, newValue) {
+            const newAmount = parseFloat(newValue);
+            if (!isNaN(newAmount) && newAmount !== 0 && newAmount !== expenses[index].amount) {
+                expenses[index].amount = newAmount;
+                expenses[index].type = newAmount < 0 ? 'return' : 'expense';
+                syncToFirebase();
+                updateBudgetDisplay();
+                const syncMsg = firebaseLoaded ? 'updated and synced!' : 'updated (offline mode)!';
+                showSuccess(`Amount ${syncMsg} ✏️`);
+            }
+            updateExpensesList();
+        }
+
+        function deleteExpense(index) {
+            if (confirm('Delete this expense?')) {
+                expenses.splice(index, 1);
+                syncToFirebase();
+                updateBudgetDisplay();
+                updateExpensesList();
+                const syncMsg = firebaseLoaded ? 'deleted and synced!' : 'deleted (offline mode)!';
+                showSuccess(`Expense ${syncMsg} 🗑️`);
+            }
+        }
+
+        function saveSettings() {
+            const totalBudget = parseInt(document.getElementById('totalBudget').value) || 100;
+            const person1Budget = parseInt(document.getElementById('sanderBudget').value) || 25;
+            const person2Budget = parseInt(document.getElementById('danielleBudget').value) || 75;
+            const person1Name = document.getElementById('person1Name').value.trim() || 'Sander';
+            const person2Name = document.getElementById('person2Name').value.trim() || 'Danielle';
+            const timezone = document.getElementById('timezone').value;
+            
+            // Validate that budgets add up
+            if (person1Budget + person2Budget !== totalBudget) {
+                alert(`⚠️ Budget split doesn't add up!\n${person1Name}: ${person1Budget}\n${person2Name}: ${person2Budget}\nTotal: ${person1Budget + person2Budget}\n\nShould equal: ${totalBudget}`);
+                return;
+            }
+            
+            // Update settings
+            budgetSettings = {
+                totalBudget: totalBudget,
+                person1Name: person1Name,
+                person1Budget: person1Budget,
+                person2Name: person2Name,
+                person2Budget: person2Budget,
+                timezone: timezone
+            };
+            
+            // Sync to Firebase and local storage
+            syncToFirebase();
+            
+            // Update UI
+            updateUIWithSettings();
+            
+            // Close modal
+            closeSettings();
+            
+            const syncMsg = firebaseLoaded ? 'saved and synced!' : 'saved (offline mode)!';
+            showSuccess(`Settings ${syncMsg} 🎉`);
+        }
+
+        function updateUIWithSettings() {
+            // Update header
+            document.getElementById('budgetDisplay').textContent = 
+                `Daily Budget: $${budgetSettings.totalBudget} total`;
+            
+            // Update cards
+            document.getElementById('sanderLabel').textContent = 
+                `${budgetSettings.person1Name} (${budgetSettings.person1Budget}/day)`;
+            document.getElementById('danielleLabel').textContent = 
+                `${budgetSettings.person2Name} (${budgetSettings.person2Budget}/day)`;
+            
+            // Update buttons
+            document.getElementById('sanderBtnText').textContent = 
+                `${budgetSettings.person1Name} (${budgetSettings.person1Budget})`;
+            document.getElementById('danielleBtnText').textContent = 
+                `${budgetSettings.person2Name} (${budgetSettings.person2Budget})`;
+            
+            // Update budget display
+            updateBudgetDisplay();
+        }
+
+        function openSettings() {
+            // Pre-fill current settings
+            document.getElementById('totalBudget').value = budgetSettings.totalBudget;
+            document.getElementById('sanderBudget').value = budgetSettings.person1Budget;
+            document.getElementById('danielleBudget').value = budgetSettings.person2Budget;
+            document.getElementById('person1Name').value = budgetSettings.person1Name;
+            document.getElementById('person2Name').value = budgetSettings.person2Name;
+            document.getElementById('timezone').value = budgetSettings.timezone;
+            document.getElementById('currentBudgetId').value = budgetId;
+            
+            document.getElementById('settingsModal').style.display = 'flex';
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function setBudgetPreset(total, person1, person2) {
+            document.getElementById('totalBudget').value = total;
+            document.getElementById('sanderBudget').value = person1;
+            document.getElementById('danielleBudget').value = person2;
+        }
+
+        function saveSettings() {
+            const totalBudget = parseInt(document.getElementById('totalBudget').value) || 100;
+            const person1Budget = parseInt(document.getElementById('sanderBudget').value) || 25;
+            const person2Budget = parseInt(document.getElementById('danielleBudget').value) || 75;
+            const person1Name = document.getElementById('person1Name').value.trim() || 'Sander';
+            const person2Name = document.getElementById('person2Name').value.trim() || 'Danielle';
+            const timezone = document.getElementById('timezone').value;
+            
+            // Validate that budgets add up
+            if (person1Budget + person2Budget !== totalBudget) {
+                alert(`⚠️ Budget split doesn't add up!\n${person1Name}: ${person1Budget}\n${person2Name}: ${person2Budget}\nTotal: ${person1Budget + person2Budget}\n\nShould equal: ${totalBudget}`);
+                return;
+            }
+            
+            // Update settings
+            budgetSettings = {
+                totalBudget: totalBudget,
+                person1Name: person1Name,
+                person1Budget: person1Budget,
+                person2Name: person2Name,
+                person2Budget: person2Budget,
+                timezone: timezone
+            };
+            
+            // Sync to Firebase and local storage
+            syncToFirebase();
+            
+            // Update UI
+            updateUIWithSettings();
+            
+            // Close modal
+            closeSettings();
+            
+            showSuccess('Settings saved and synced! 🎉');
+        }
+
+        function selectPerson(person) {
+            selectedPerson = person;
+            
+            // Update button states
+            document.getElementById('sanderBtn').classList.remove('active');
+            document.getElementById('danielleBtn').classList.remove('active');
+            
+            if (person === budgetSettings.person1Name) {
+                document.getElementById('sanderBtn').classList.add('active');
+            } else {
+                document.getElementById('danielleBtn').classList.add('active');
+            }
+            
+            // Focus on description field
+            document.getElementById('description').focus();
+        }
+
+        function addExpense() {
+            const description = document.getElementById('description').value.trim();
+            const amount = parseFloat(document.getElementById('amount').value);
+            
+            // Validation - allow negative amounts
+            if (!selectedPerson || !description || isNaN(amount) || amount === 0) {
+                showError('Please fill in all fields correctly');
+                return;
+            }
+            
+            // Add expense
+            const expense = {
+                person: selectedPerson,
+                description: description,
+                amount: amount,
+                timestamp: new Date(),
+                type: amount < 0 ? 'return' : 'expense'
+            };
+            
+            expenses.push(expense);
+            syncToFirebase();
+            
+            // Clear form
+            document.getElementById('description').value = '';
+            document.getElementById('amount').value = '';
+            selectedPerson = '';
+            document.getElementById('sanderBtn').classList.remove('active');
+            document.getElementById('danielleBtn').classList.remove('active');
+            
+            // Update display
+            updateBudgetDisplay();
+            updateExpensesList();
+            showSuccess(`${amount < 0 ? 'Return' : 'Expense'} added and synced! 🎉`);
+        }
+
+        function updateBudgetDisplay() {
+            const today = new Date().toDateString();
+            const todayExpenses = expenses.filter(exp => 
+                exp.timestamp.toDateString() === today
+            );
+            
+            let person1Spent = 0;
+            let person2Spent = 0;
+            
+            todayExpenses.forEach(exp => {
+                if (exp.type !== 'deposit') { // Don't count deposits as spending
+                    if (exp.person === budgetSettings.person1Name) {
+                        person1Spent += exp.amount;
+                    } else {
+                        person2Spent += exp.amount;
+                    }
+                }
+            });
+            
+            const person1Remaining = budgetSettings.person1Budget - person1Spent;
+            const person2Remaining = budgetSettings.person2Budget - person2Spent;
+            const totalSpent = person1Spent + person2Spent;
+            
+            // Update display - remaining prominent, spent smaller
+            document.getElementById('sanderRemaining').textContent = `${person1Remaining.toFixed(2)} remaining`;
+            document.getElementById('danielleRemaining').textContent = `${person2Remaining.toFixed(2)} remaining`;
+            document.getElementById('sanderSpent').textContent = `${person1Spent.toFixed(2)} spent`;
+            document.getElementById('danielleSpent').textContent = `${person2Spent.toFixed(2)} spent`;
+            document.getElementById('floatingTotal').textContent = `Today: ${totalSpent.toFixed(2)} / ${budgetSettings.totalBudget}.00`;
+            
+            // Update colors for overspending
+            if (person1Remaining < 0) {
+                document.getElementById('sanderRemaining').classList.add('over-budget');
+                document.getElementById('sanderRemaining').textContent = `${Math.abs(person1Remaining).toFixed(2)} over budget`;
+            } else {
+                document.getElementById('sanderRemaining').classList.remove('over-budget');
+            }
+            
+            if (person2Remaining < 0) {
+                document.getElementById('danielleRemaining').classList.add('over-budget');
+                document.getElementById('danielleRemaining').textContent = `${Math.abs(person2Remaining).toFixed(2)} over budget`;
+            } else {
+                document.getElementById('danielleRemaining').classList.remove('over-budget');
+            }
+        }
+
+        function updateExpensesList() {
+            const viewDate = currentViewDate.toDateString();
+            const dayExpenses = expenses.filter(exp => 
+                exp.timestamp.toDateString() === viewDate
+            ).reverse(); // Most recent first
+            
+            const list = document.getElementById('expensesList');
+            const today = new Date().toDateString();
+            
+            // Update title
+            if (viewDate === today) {
+                document.getElementById('expensesTitle').textContent = '📋 Today\'s Expenses';
+            } else {
+                const options = { month: 'short', day: 'numeric' };
+                const dateStr = currentViewDate.toLocaleDateString('en-US', options);
+                document.getElementById('expensesTitle').textContent = `📋 ${dateStr} Expenses`;
+            }
+            
+            list.innerHTML = '';
+            
+            if (dayExpenses.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">No expenses this day</div>';
+                return;
+            }
+            
+            dayExpenses.forEach((expense, index) => {
+                const actualIndex = expenses.findIndex(exp => 
+                    exp.timestamp.getTime() === expense.timestamp.getTime() && 
+                    exp.description === expense.description &&
+                    exp.amount === expense.amount
+                );
+                
+                const item = document.createElement('div');
+                item.className = `expense-item ${expense.type === 'deposit' ? 'deposit-item' : ''}`;
+                
+                const isReturn = expense.amount < 0;
+                const amountText = expense.type === 'deposit' ? 
+                    `+${expense.amount.toFixed(2)}` : 
+                    `${isReturn ? '+' : ''}${Math.abs(expense.amount).toFixed(2)}`;
+                
+                item.innerHTML = `
+                    <div class="expense-info">
+                        <div class="expense-description" onclick="editDescription(${actualIndex})" id="desc-${actualIndex}">${expense.description}</div>
+                        <div class="expense-person ${expense.person.toLowerCase()}">${expense.person}</div>
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <div class="expense-amount ${expense.person.toLowerCase()}" onclick="editAmount(${actualIndex})" id="amount-${actualIndex}">${amountText}</div>
+                        ${expense.type !== 'deposit' ? `
+                            <button class="delete-btn" onclick="deleteExpense(${actualIndex})">🗑️</button>
+                        ` : ''}
+                    </div>
+                `;
+                
+                list.appendChild(item);
+            });
+        }
+
+        function changeDate(direction) {
+            const newDate = new Date(currentViewDate);
+            newDate.setDate(newDate.getDate() + direction);
+            currentViewDate = newDate;
+            updateExpensesList();
+        }
+
+        function editDescription(index) {
+            const descElement = document.getElementById(`desc-${index}`);
+            const currentText = expenses[index].description;
+            
+            descElement.classList.add('editing');
+            descElement.innerHTML = `<input type="text" value="${currentText}" onblur="saveDescription(${index}, this.value)" onkeypress="if(event.key==='Enter') this.blur()" autofocus>`;
+        }
+
+        function editAmount(index) {
+            const amountElement = document.getElementById(`amount-${index}`);
+            const currentAmount = expenses[index].amount;
+            
+            amountElement.classList.add('editing');
+            amountElement.innerHTML = `<input type="number" value="${currentAmount}" step="0.01" onblur="saveAmount(${index}, this.value)" onkeypress="if(event.key==='Enter') this.blur()" autofocus>`;
+        }
+
+        function saveDescription(index, newValue) {
+            const trimmedValue = newValue.trim();
+            if (trimmedValue && trimmedValue !== expenses[index].description) {
+                expenses[index].description = trimmedValue;
+                syncToFirebase();
+                showSuccess('Description updated and synced! ✏️');
+            }
+            updateExpensesList();
+        }
+
+        function saveAmount(index, newValue) {
+            const newAmount = parseFloat(newValue);
+            if (!isNaN(newAmount) && newAmount !== 0 && newAmount !== expenses[index].amount) {
+                expenses[index].amount = newAmount;
+                expenses[index].type = newAmount < 0 ? 'return' : 'expense';
+                syncToFirebase();
+                updateBudgetDisplay();
+                showSuccess('Amount updated and synced! ✏️');
+            }
+            updateExpensesList();
+        }
+
+        function deleteExpense(index) {
+            if (confirm('Delete this expense?')) {
+                expenses.splice(index, 1);
+                syncToFirebase();
+                updateBudgetDisplay();
+                updateExpensesList();
+                showSuccess('Expense deleted and synced! 🗑️');
+            }
+        }
+
+        function checkForMidnightReset() {
+            const lastResetKey = 'lastMidnightReset';
+            const lastReset = localStorage.getItem(lastResetKey);
+            const now = new Date();
+            
+            // Check if we need to add daily deposits
+            if (!lastReset || new Date(lastReset).toDateString() !== now.toDateString()) {
+                // Only add deposits if this isn't the very first time using the app
+                if (lastReset) {
+                    addDailyDeposits();
+                }
+                localStorage.setItem(lastResetKey, now.toISOString());
+            }
+            
+            // Set up next midnight check
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(0, 0, 0, 0);
+            
+            const msUntilMidnight = tomorrow.getTime() - now.getTime();
+            setTimeout(() => {
+                addDailyDeposits();
+                localStorage.setItem(lastResetKey, new Date().toISOString());
+                updateBudgetDisplay();
+                updateExpensesList();
+                showSuccess('🌅 New day! Daily budget added and synced!');
+                checkForMidnightReset(); // Set up next check
+            }, msUntilMidnight);
+        }
+
+        function addDailyDeposits() {
+            const today = new Date();
+            
+            // Add deposit for person 1
+            expenses.push({
+                person: budgetSettings.person1Name,
+                description: 'Daily budget deposit',
+                amount: budgetSettings.person1Budget,
+                timestamp: today,
+                type: 'deposit'
+            });
+            
+            // Add deposit for person 2
+            expenses.push({
+                person: budgetSettings.person2Name,
+                description: 'Daily budget deposit',
+                amount: budgetSettings.person2Budget,
+                timestamp: today,
+                type: 'deposit'
+            });
+            
+            syncToFirebase();
+        }
+
+        function showSuccess(message) {
+            const successEl = document.getElementById('successMessage');
+            successEl.textContent = message;
+            successEl.style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
+            
+            setTimeout(() => {
+                successEl.style.display = 'none';
+            }, 3000);
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            document.getElementById('successMessage').style.display = 'none';
+            
+            setTimeout(() => {
+                errorEl.style.display = 'none';
+            }, 3000);
+        }
+
+        // Online/Offline detection
+        window.addEventListener('online', () => {
+            isOnline = true;
+            updateSyncStatus(true);
+            syncToFirebase(); // Sync any pending changes
+        });
+
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            updateSyncStatus(false);
+        });
+
+        // Close settings when clicking outside
+        document.getElementById('settingsModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSettings();
+            }
+        });
+
+        // Enter key to add expense
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && document.activeElement.id === 'amount') {
+                addExpense();
+            }
+        });
+
+        // Initialize app
+        initializeApp();
+    </script>
+</body>
+</html>
