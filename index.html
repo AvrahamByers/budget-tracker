@@ -326,9 +326,14 @@
             background-color: #f0f0f0;
         }
 
-        .deposit-item {
+        .deposit-item, .carryforward-item {
             background-color: #e8f5e8;
             border-left: 4px solid #28a745;
+        }
+
+        .carryforward-item.negative {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
         }
 
         .success-message {
@@ -1018,16 +1023,23 @@
                 return;
             }
             
-            // Add expense
+            // Add expense to the currently viewed date (important!)
+            const expenseDate = new Date(currentViewDate);
+            expenseDate.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+            
             const expense = {
                 person: selectedPerson,
                 description: description,
                 amount: amount,
-                timestamp: new Date(),
+                timestamp: expenseDate,
                 type: amount < 0 ? 'return' : 'expense'
             };
             
             expenses.push(expense);
+            
+            // Recalculate carry-forwards for all days after this date
+            recalculateCarryForwards(expenseDate);
+            
             syncToFirebase();
             
             // Clear form
@@ -1332,7 +1344,13 @@
                 );
                 
                 const item = document.createElement('div');
-                item.className = `expense-item ${expense.type === 'deposit' ? 'deposit-item' : ''}`;
+                let itemClass = 'expense-item';
+                if (expense.type === 'deposit') {
+                    itemClass += ' deposit-item';
+                } else if (expense.type === 'carryforward') {
+                    itemClass += expense.amount < 0 ? ' carryforward-item negative' : ' carryforward-item';
+                }
+                item.className = itemClass;
                 
                 const isReturn = expense.amount < 0;
                 const amountText = expense.type === 'deposit' ? 
@@ -1346,7 +1364,7 @@
                     </div>
                     <div style="display: flex; align-items: center;">
                         <div class="expense-amount ${expense.person.toLowerCase()}" onclick="editAmount(${actualIndex})" id="amount-${actualIndex}">${amountText}</div>
-                        ${expense.type !== 'deposit' ? `
+                        ${expense.type !== 'deposit' && expense.type !== 'carryforward' ? `
                             <button class="delete-btn" onclick="deleteExpense(${actualIndex})">🗑️</button>
                         ` : ''}
                     </div>
@@ -1360,7 +1378,13 @@
             const newDate = new Date(currentViewDate);
             newDate.setDate(newDate.getDate() + direction);
             currentViewDate = newDate;
+            
+            // Update all displays when date changes
             updateExpensesList();
+            updateBudgetDisplay();
+            
+            // Debug: Show what date we're viewing
+            console.log('Viewing date:', currentViewDate.toDateString());
         }
 
         function editDescription(index) {
@@ -1441,28 +1465,123 @@
             }, msUntilMidnight);
         }
 
-        function addDailyDeposits() {
-            const today = new Date();
+        function recalculateCarryForwards(fromDate) {
+            console.log('Recalculating carry-forwards from:', fromDate.toDateString());
             
-            // Add deposit for person 1
-            expenses.push({
-                person: budgetSettings.person1Name,
-                description: 'Daily budget deposit',
-                amount: budgetSettings.person1Budget,
-                timestamp: today,
-                type: 'deposit'
+            // Find the very first day anyone added an expense (not deposits/carryforwards)
+            const firstExpenseDate = expenses
+                .filter(exp => exp.type === 'expense' || exp.type === 'return')
+                .map(exp => exp.timestamp)
+                .sort((a, b) => a - b)[0];
+            
+            console.log('First expense date:', firstExpenseDate ? firstExpenseDate.toDateString() : 'None');
+            
+            if (!firstExpenseDate) {
+                console.log('No expenses yet, no carry-forwards needed');
+                return;
+            }
+            
+            // Don't calculate carry-forwards before the first expense day
+            const startDate = new Date(Math.max(fromDate.getTime(), firstExpenseDate.getTime()));
+            const startDateNextDay = new Date(startDate);
+            startDateNextDay.setDate(startDateNextDay.getDate() + 1);
+            
+            console.log('Starting carry-forwards from:', startDateNextDay.toDateString());
+            
+            // Remove all existing carryforward entries from this date onwards
+            const beforeCount = expenses.length;
+            expenses = expenses.filter(exp => {
+                if (exp.type === 'carryforward') {
+                    return exp.timestamp.toDateString() < startDateNextDay.toDateString();
+                }
+                return true;
+            });
+            console.log('Removed', beforeCount - expenses.length, 'old carry-forwards');
+            
+            // Find all unique dates from the day after first expense onwards
+            const uniqueDates = [...new Set(
+                expenses
+                    .filter(exp => exp.timestamp >= startDateNextDay)
+                    .map(exp => exp.timestamp.toDateString())
+            )].sort((a, b) => new Date(a) - new Date(b));
+            
+            console.log('Processing dates for carry-forward:', uniqueDates);
+            
+            // Recalculate carryforwards for each day (starting day after first expense)
+            uniqueDates.forEach(dateStr => {
+                const currentDate = new Date(dateStr);
+                const previousDate = new Date(currentDate);
+                previousDate.setDate(previousDate.getDate() - 1);
+                
+                console.log('Calculating carry-forward for', dateStr, 'from', previousDate.toDateString());
+                
+                // Only calculate if previous day is on or after first expense date
+                if (previousDate < firstExpenseDate) {
+                    console.log('Skipping - previous day before first expense');
+                    return;
+                }
+                
+                // Calculate what was spent vs available the previous day
+                const previousDayExpenses = expenses.filter(exp => 
+                    exp.timestamp.toDateString() === previousDate.toDateString()
+                );
+                
+                console.log('Previous day expenses:', previousDayExpenses);
+                
+                let person1PrevSpent = 0;
+                let person2PrevSpent = 0;
+                let person1PrevAvailable = budgetSettings.person1Budget;
+                let person2PrevAvailable = budgetSettings.person2Budget;
+                
+                previousDayExpenses.forEach(exp => {
+                    if (exp.person === budgetSettings.person1Name) {
+                        if (exp.type === 'carryforward') {
+                            person1PrevAvailable += exp.amount;
+                        } else if (exp.type !== 'deposit') {
+                            person1PrevSpent += exp.amount;
+                        }
+                    } else {
+                        if (exp.type === 'carryforward') {
+                            person2PrevAvailable += exp.amount;
+                        } else if (exp.type !== 'deposit') {
+                            person2PrevSpent += exp.amount;
+                        }
+                    }
+                });
+                
+                const person1Carryforward = person1PrevAvailable - person1PrevSpent;
+                const person2Carryforward = person2PrevAvailable - person2PrevSpent;
+                
+                console.log(`${budgetSettings.person1Name} carryforward:`, person1Carryforward);
+                console.log(`${budgetSettings.person2Name} carryforward:`, person2Carryforward);
+                
+                // Add carryforward entries if not zero
+                if (person1Carryforward !== 0) {
+                    const carryforwardExpense = {
+                        person: budgetSettings.person1Name,
+                        description: person1Carryforward > 0 ? 'Carry forward from yesterday' : 'Overspend from yesterday',
+                        amount: person1Carryforward,
+                        timestamp: currentDate,
+                        type: 'carryforward'
+                    };
+                    expenses.push(carryforwardExpense);
+                    console.log('Added carryforward for', budgetSettings.person1Name, carryforwardExpense);
+                }
+                
+                if (person2Carryforward !== 0) {
+                    const carryforwardExpense = {
+                        person: budgetSettings.person2Name,
+                        description: person2Carryforward > 0 ? 'Carry forward from yesterday' : 'Overspend from yesterday',
+                        amount: person2Carryforward,
+                        timestamp: currentDate,
+                        type: 'carryforward'
+                    };
+                    expenses.push(carryforwardExpense);
+                    console.log('Added carryforward for', budgetSettings.person2Name, carryforwardExpense);
+                }
             });
             
-            // Add deposit for person 2
-            expenses.push({
-                person: budgetSettings.person2Name,
-                description: 'Daily budget deposit',
-                amount: budgetSettings.person2Budget,
-                timestamp: today,
-                type: 'deposit'
-            });
-            
-            syncToFirebase();
+            console.log('Carry-forward calculation complete. Total expenses:', expenses.length);
         }
 
         function showSuccess(message) {
@@ -1515,6 +1634,18 @@
 
         // Initialize app
         initializeApp();
+        
+        // Test carry-forward calculation on page load (for debugging)
+        setTimeout(() => {
+            console.log('All expenses:', expenses);
+            if (expenses.length > 0) {
+                console.log('Triggering carry-forward recalculation...');
+                const today = new Date();
+                recalculateCarryForwards(today);
+                updateBudgetDisplay();
+                updateExpensesList();
+            }
+        }, 2000);
     </script>
 </body>
 </html>
