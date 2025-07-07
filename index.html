@@ -1249,6 +1249,8 @@
         }
 
         function openSettings() {
+            console.log('Opening settings with current values:', budgetSettings);
+            
             // Pre-fill current settings
             document.getElementById('totalBudget').value = budgetSettings.totalBudget;
             document.getElementById('person1Budget').value = budgetSettings.person1Budget;
@@ -1257,6 +1259,8 @@
             document.getElementById('person2Name').value = budgetSettings.person2Name;
             document.getElementById('timezone').value = budgetSettings.timezone;
             document.getElementById('currentBudgetId').value = budgetId;
+            
+            console.log('Settings form pre-filled');
             
             document.getElementById('settingsModal').style.display = 'flex';
         }
