@@ -114,8 +114,8 @@
             color: #666;
         }
 
-        .sander { color: #2196F3; }
-        .danielle { color: #E91E63; }
+        .sander, .person1 { color: #2196F3; }
+        .danielle, .person2 { color: #E91E63; }
         .total { color: #4CAF50; }
         .over-budget { color: #f44336; }
 
@@ -172,12 +172,60 @@
             font-size: 16px;
             cursor: pointer;
             transition: all 0.3s;
+            position: relative;
         }
 
         .person-btn.active {
             background: #667eea;
             color: white;
             border-color: #667eea;
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .person-btn:hover:not(.active) {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: translateY(-1px);
+        }
+
+        .person-selection-required {
+            background: #fff3cd !important;
+            border: 2px solid #ffc107 !important;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        .form-disabled {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .selection-prompt {
+            background: #e3f2fd;
+            border: 1px solid #2196F3;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: 500;
+            color: #1976D2;
+            display: none;
+        }
+
+        .selection-prompt.show {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .add-btn {
@@ -547,15 +595,15 @@
 
         <div class="budget-cards">
             <div class="budget-card">
-                <h3 id="sanderLabel">Person 1 ($50/day)</h3>
-                <div class="budget-remaining sander" id="sanderRemaining">$50.00 remaining</div>
-                <div class="budget-spent" id="sanderSpent">$0.00 spent</div>
+                <h3 id="person1Label">Person 1 ($50/day)</h3>
+                <div class="budget-remaining person1" id="person1Remaining">$50.00 remaining</div>
+                <div class="budget-spent" id="person1Spent">$0.00 spent</div>
             </div>
             
             <div class="budget-card">
-                <h3 id="danielleLabel">Person 2 ($50/day)</h3>
-                <div class="budget-remaining danielle" id="danielleRemaining">$50.00 remaining</div>
-                <div class="budget-spent" id="danielleSpent">$0.00 spent</div>
+                <h3 id="person2Label">Person 2 ($50/day)</h3>
+                <div class="budget-remaining person2" id="person2Remaining">$50.00 remaining</div>
+                <div class="budget-spent" id="person2Spent">$0.00 spent</div>
             </div>
         </div>
 
@@ -571,30 +619,35 @@
             </div>
 
             <div class="form-group">
-                <label>Who spent the money?</label>
+                <label>👆 First, choose who spent the money:</label>
                 <div class="person-buttons">
-                    <button class="person-btn" onclick="selectPerson('person1')" id="sanderBtn">
-                        <span id="sanderBtnText">Person 1 ($50)</span>
+                    <button class="person-btn" onclick="selectPerson('person1')" id="person1Btn">
+                        <span id="person1BtnText">Person 1 ($50)</span>
                     </button>
-                    <button class="person-btn" onclick="selectPerson('person2')" id="danielleBtn">
-                        <span id="danielleBtnText">Person 2 ($50)</span>
+                    <button class="person-btn" onclick="selectPerson('person2')" id="person2Btn">
+                        <span id="person2BtnText">Person 2 ($50)</span>
                     </button>
+                </div>
+                <div class="selection-prompt" id="selectionPrompt">
+                    👆 Please select who made this purchase first
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="description">What was purchased?</label>
-                <input type="text" id="description" placeholder="e.g., Coffee, Lunch, Gas">
-            </div>
+            <div id="expenseForm" class="form-disabled">
+                <div class="form-group">
+                    <label for="description">What was purchased?</label>
+                    <input type="text" id="description" placeholder="e.g., Coffee, Lunch, Gas" disabled>
+                </div>
 
-            <div class="form-group">
-                <label for="amount">Amount (use negative for returns)</label>
-                <input type="number" id="amount" placeholder="0.00" step="0.01">
-            </div>
+                <div class="form-group">
+                    <label for="amount">Amount (use negative for returns)</label>
+                    <input type="number" id="amount" placeholder="0.00" step="0.01" disabled>
+                </div>
 
-            <button class="add-btn" onclick="addExpense()">
-                Add Expense
-            </button>
+                <button class="add-btn" onclick="addExpense()" id="addBtn" disabled>
+                    Add Expense
+                </button>
+            </div>
         </div>
 
         <div class="recent-expenses">
@@ -665,12 +718,12 @@
                     <label>Custom Split</label>
                     <div class="custom-split">
                         <div>
-                            <label for="sanderBudget">Person 1 Budget</label>
-                            <input type="number" id="sanderBudget" placeholder="25" step="1" min="0">
+                            <label for="person1Budget">Person 1 Budget</label>
+                            <input type="number" id="person1Budget" placeholder="50" step="1" min="0">
                         </div>
                         <div>
-                            <label for="danielleBudget">Person 2 Budget</label>
-                            <input type="number" id="danielleBudget" placeholder="75" step="1" min="0">
+                            <label for="person2Budget">Person 2 Budget</label>
+                            <input type="number" id="person2Budget" placeholder="50" step="1" min="0">
                         </div>
                     </div>
                 </div>
@@ -1043,9 +1096,25 @@
             const description = document.getElementById('description').value.trim();
             const amount = parseFloat(document.getElementById('amount').value);
             
-            // Validation - allow negative amounts
-            if (!selectedPerson || !description || isNaN(amount) || amount === 0) {
-                showError('Please fill in all fields correctly');
+            // Enhanced validation with better error messages
+            if (!selectedPerson) {
+                // Highlight person buttons and show prompt
+                document.getElementById('person1Btn').classList.add('person-selection-required');
+                document.getElementById('person2Btn').classList.add('person-selection-required');
+                document.getElementById('selectionPrompt').classList.add('show');
+                showError('Please select who made this purchase first! 👆');
+                return;
+            }
+            
+            if (!description) {
+                document.getElementById('description').focus();
+                showError('Please enter what was purchased');
+                return;
+            }
+            
+            if (isNaN(amount) || amount === 0) {
+                document.getElementById('amount').focus();
+                showError('Please enter a valid amount');
                 return;
             }
             
@@ -1068,12 +1137,15 @@
             
             syncToFirebase();
             
-            // Clear form
+            // Clear form and reset to require person selection again
             document.getElementById('description').value = '';
             document.getElementById('amount').value = '';
             selectedPerson = '';
-            document.getElementById('sanderBtn').classList.remove('active');
-            document.getElementById('danielleBtn').classList.remove('active');
+            document.getElementById('person1Btn').classList.remove('active');
+            document.getElementById('person2Btn').classList.remove('active');
+            
+            // Disable form again
+            disableExpenseForm();
             
             // Update display
             updateBudgetDisplay();
@@ -1179,8 +1251,8 @@
         function openSettings() {
             // Pre-fill current settings
             document.getElementById('totalBudget').value = budgetSettings.totalBudget;
-            document.getElementById('sanderBudget').value = budgetSettings.person1Budget;
-            document.getElementById('danielleBudget').value = budgetSettings.person2Budget;
+            document.getElementById('person1Budget').value = budgetSettings.person1Budget;
+            document.getElementById('person2Budget').value = budgetSettings.person2Budget;
             document.getElementById('person1Name').value = budgetSettings.person1Name;
             document.getElementById('person2Name').value = budgetSettings.person2Name;
             document.getElementById('timezone').value = budgetSettings.timezone;
@@ -1195,8 +1267,8 @@
 
         function setBudgetPreset(total, person1, person2) {
             document.getElementById('totalBudget').value = total;
-            document.getElementById('sanderBudget').value = person1;
-            document.getElementById('danielleBudget').value = person2;
+            document.getElementById('person1Budget').value = person1;
+            document.getElementById('person2Budget').value = person2;
         }
 
         function saveSettings() {
@@ -1237,23 +1309,59 @@
 
         function selectPerson(person) {
             // Clear both buttons first
-            const sanderBtn = document.getElementById('sanderBtn');
-            const danielleBtn = document.getElementById('danielleBtn');
+            const person1Btn = document.getElementById('person1Btn');
+            const person2Btn = document.getElementById('person2Btn');
             
-            sanderBtn.classList.remove('active');
-            danielleBtn.classList.remove('active');
+            person1Btn.classList.remove('active');
+            person2Btn.classList.remove('active');
+            
+            // Remove any pulsing animation
+            person1Btn.classList.remove('person-selection-required');
+            person2Btn.classList.remove('person-selection-required');
             
             // Set the selected person based on which button was clicked
             if (person === 'person1') {
                 selectedPerson = budgetSettings.person1Name;
-                sanderBtn.classList.add('active');
+                person1Btn.classList.add('active');
             } else if (person === 'person2') {
                 selectedPerson = budgetSettings.person2Name;
-                danielleBtn.classList.add('active');
+                person2Btn.classList.add('active');
             }
             
+            // Enable the form
+            enableExpenseForm();
+            
+            // Hide selection prompt
+            document.getElementById('selectionPrompt').classList.remove('show');
+            
             // Focus on description field
-            document.getElementById('description').focus();
+            setTimeout(() => {
+                document.getElementById('description').focus();
+            }, 100);
+        }
+
+        function enableExpenseForm() {
+            const form = document.getElementById('expenseForm');
+            const descriptionInput = document.getElementById('description');
+            const amountInput = document.getElementById('amount');
+            const addBtn = document.getElementById('addBtn');
+            
+            form.classList.remove('form-disabled');
+            descriptionInput.disabled = false;
+            amountInput.disabled = false;
+            addBtn.disabled = false;
+        }
+
+        function disableExpenseForm() {
+            const form = document.getElementById('expenseForm');
+            const descriptionInput = document.getElementById('description');
+            const amountInput = document.getElementById('amount');
+            const addBtn = document.getElementById('addBtn');
+            
+            form.classList.add('form-disabled');
+            descriptionInput.disabled = true;
+            amountInput.disabled = true;
+            addBtn.disabled = true;
         }
 
         function addExpense() {
@@ -1386,10 +1494,10 @@
                 item.innerHTML = `
                     <div class="expense-info">
                         <div class="expense-description" onclick="editDescription(${actualIndex})" id="desc-${actualIndex}">${expense.description}</div>
-                        <div class="expense-person ${expense.person.toLowerCase()}">${expense.person}</div>
+                        <div class="expense-person ${expense.person.toLowerCase().replace(' ', '')}">${expense.person}</div>
                     </div>
                     <div style="display: flex; align-items: center;">
-                        <div class="expense-amount ${expense.person.toLowerCase()}" onclick="editAmount(${actualIndex})" id="amount-${actualIndex}">${amountText}</div>
+                        <div class="expense-amount ${expense.person.toLowerCase().replace(' ', '')}" onclick="editAmount(${actualIndex})" id="amount-${actualIndex}">${amountText}</div>
                         ${expense.type !== 'deposit' && expense.type !== 'carryforward' ? `
                             <button class="delete-btn" onclick="deleteExpense(${actualIndex})">🗑️</button>
                         ` : ''}
@@ -1466,11 +1574,18 @@
             const lastReset = localStorage.getItem(lastResetKey);
             const now = new Date();
             
+            console.log('Checking for midnight reset. Last reset:', lastReset, 'Current date:', now.toDateString());
+            
             // Check if we need to add daily deposits
             if (!lastReset || new Date(lastReset).toDateString() !== now.toDateString()) {
+                console.log('Need to add daily deposits for', now.toDateString());
+                
                 // Only add deposits if this isn't the very first time using the app
                 if (lastReset) {
                     addDailyDeposits();
+                    showSuccess('🌅 New day! Daily budget and carry-forward added!');
+                } else {
+                    console.log('First time using app, not adding deposits yet');
                 }
                 localStorage.setItem(lastResetKey, now.toISOString());
             }
@@ -1481,12 +1596,15 @@
             tomorrow.setHours(0, 0, 0, 0);
             
             const msUntilMidnight = tomorrow.getTime() - now.getTime();
+            console.log('Next midnight check in', Math.round(msUntilMidnight / 1000 / 60), 'minutes');
+            
             setTimeout(() => {
+                console.log('Midnight! Adding daily deposits...');
                 addDailyDeposits();
                 localStorage.setItem(lastResetKey, new Date().toISOString());
                 updateBudgetDisplay();
                 updateExpensesList();
-                showSuccess('🌅 New day! Daily budget added and synced!');
+                showSuccess('🌅 New day! Daily budget and carry-forward added!');
                 checkForMidnightReset(); // Set up next check
             }, msUntilMidnight);
         }
@@ -1664,6 +1782,8 @@
         // Test carry-forward calculation on page load (for debugging)
         setTimeout(() => {
             console.log('All expenses:', expenses);
+            console.log('Budget settings:', budgetSettings);
+            
             if (expenses.length > 0) {
                 console.log('Triggering carry-forward recalculation...');
                 const today = new Date();
@@ -1671,7 +1791,21 @@
                 updateBudgetDisplay();
                 updateExpensesList();
             }
-        }, 2000);
+            
+            // Force add daily deposits for testing (remove this in production)
+            console.log('Testing daily deposits...');
+            const today = new Date();
+            const hasDepositsToday = expenses.some(exp => 
+                exp.timestamp.toDateString() === today.toDateString() && exp.type === 'deposit'
+            );
+            
+            if (!hasDepositsToday && expenses.length > 0) {
+                console.log('No deposits found for today, adding them...');
+                addDailyDeposits();
+                updateBudgetDisplay();
+                updateExpensesList();
+            }
+        }, 3000);
     </script>
 </body>
 </html>
